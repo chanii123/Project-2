@@ -23,3 +23,13 @@ Github repository of Project 2 for BIMM 143 Bioinformatics Lab
 #### 3D protein measurements were made through bio3d and pyMOL, and structural similiarities near the binding sites of the proteins were measured and visualized through it's 3D structure images. The binding sites were obtained through bio3d, and these residues and nearby residues were checked for structual similarities. These videos have been embedded into this notebook.
 
 #### The datasets were downloaded in UniProt and PDB
+
+
+
+## FASTA files
+
+### all are Amino Acid sequence fasta files downloaded from Uniprot, all fasta file names except ragweed protease allergen are the accession number. Ragweed protease allergen accession number is P27760
+#### ragweed protease allergen: "PLY1_AMBAR.fasta"
+#### Staphylococcus aureus protease allergen splA: "Q2FXC2.fasta"
+#### house dust mite protease allergen: "P08176.fasta"
+#### papain: "P00784.fasta"
