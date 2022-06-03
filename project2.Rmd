@@ -1,0 +1,242 @@
+---
+title: "Project 2"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+## Introduction
+
+### Research Question
+
+#### Are there nucleotide sequence similarities between cysteine/serine proteases that activate same allergic reaction pathways in humans such as house mite allergen, papain, ragweed pollen allergen, SplA, and if so, what structural similarities can be seen in the protein or the active site by looking at its 3D structure that may explain the function similiarities?
+
+### Background Research
+
+#### A major class of allergens that induce airway stimulation are proteases that come from many different sources. Some of these protease allergens include house dust mite derived proteases Der p 1, ragweed protease allergen Amb a 1.2, papain, and bacteria derived SplA . All of these allergens have shown to activate the type 2 immunity in a similar fashion where they disturb the tight junctions in epithelial cells making the epithelial layer more permeable. It also activates the Protease Activated Receptor 2 by cleaving the receptor that further signals the activation of type 2 immunity (Matsumura, 2011).  Papain has shown to trigger T cell differentiation with a bias towards Th2 cells that initiate type 2 immunity through the PAR2 pathway (Liang et al., 2012). Staphylococcus aureus derived SplA protease has also shown to increase Th2 cells in a similar fashion (Nordengrun et al, 2021). Ragweed allergy has been found to linked with the proteases allergen which is triggered by PAR2 (Hosoki et al., 2017). Moreover, these features were also observed in house dust mite allergen Der p 1 (Reithofer et al., 2017).
+
+### Hypothesis
+
+#### If there are multiple instances of environmental allergens being proteases or having protease-like activity causing similar allergic responses in humans, then there must be either protein sequence or structural homology between these proteins for it to cause allergies in a similar manner in humans.
+
+### Analysis and Data
+
+#### The analysis performed in this project invlude pairwise alignment as well as multiple sequence alignment to check for protein sequence similarities. The result of the pairwise alignment was plotted on a heamap to visualize the score differences between the comparisons, and multiple sequence alignment can be seen through the function MSAprettyprint which nicely organizes results of our MSA.
+
+#### 3D protein measurements were made through bio3d and pyMOL, and structural similiarities near the binding sites of the proteins were measured and visualized through it's 3D structure images. The binding sites were obtained through bio3d, and these residues and nearby residues were checked for structual similarities. These videos have been embedded into this notebook.
+
+#### The datasets were downloaded in UniProt and PDB
+
+
+
+
+```{r}
+library("Biostrings")         # Allows us to read fastafiles through the function readAAStringSet()
+library(msa)                  # Performing multiple sequence alignments
+library(tools)                # R base package for various functions
+library(text.alignment)       # Package to run walterman smith pairwise alignment
+
+
+# get fasta files found on uniprot through ebi database
+
+#assigning fasta file names to variables to call later
+ragweed<- "PLY1_AMBAR.fasta"
+splA<- "Q2FXC2.fasta"
+hdm<- "P08176.fasta"
+ppa<- "P00784.fasta"
+
+proteins<- c(ragweed, splA, hdm, ppa)
+
+
+# fasta name variables called here to make 1 variable containing all fastafiles
+fassequences <- lapply(proteins, readAAStringSet)
+# make loaded proteins sequences readable for msa format
+fassequences <- do.call(c,fassequences)
+
+#run msa
+malignment<- msa(fassequences)
+
+malignment
+
+# MSAprettyprint is used to show the results of our msa in a nicely visualized figure.
+# cannot view latex in non unix systems properly. but the code works
+a<-msaPrettyPrint(malignment, output="tex", showNames="none",
+           showLogo="none", askForOverwrite=FALSE, verbose=FALSE)
+
+
+# trying msa without spla, which has the lowerst homology
+nospla<-c(ragweed, hdm, ppa)
+
+
+fassequences1 <- lapply(nospla, readAAStringSet)
+fassequences1 <- do.call(c,fassequences1)
+
+malignment1<- msa(fassequences1)
+
+malignment1
+
+
+
+# using pairwaise sequence alignment to see if there any two similar proteins
+
+
+
+# code check for the upcoming function
+# seqonly1<-fassequences
+# seqonly1 <- seqonly1[!grepl('^$', seqonly1)]                      
+# ids <- gsub('^.+\\|(\\w+)\\|.*$', '>\\1', seqonly1) 
+# 
+# smith_waterman(ids[[1]],ids[[3]], 
+#                         match = 1L,
+#                         mismatch = -2L,
+#                         gap = -2L,)
+
+# brought back alignment code from earlier challenge problem to make heatmap of different sequences
+
+# make function named compareall that compares all sequences in a fasta file
+compareall<-function(seqlist){
+#define empty matrix with the ncol and nrow as the list length
+  WaM1<-matrix(0,nrow=length(seqlist),ncol=length(seqlist))
+
+## useful code to only get sequence from fasta
+## https://stackoverflow.com/questions/61082486/how-to-get-the-id-codes-from-a-fasta-file-using-r
+seqonly<-seqlist
+
+
+
+###### using grepl and gsub (BASE FUNCTIONS) to remove uncessary information in fasta files
+
+
+seqonly <- seqonly[!grepl('^$', seqonly)]                      
+ids <- gsub('^.+\\|(\\w+)\\|.*$', '>\\1', seqonly) 
+# nested for loop to check every two combinations in the matrix returns 0 if the comparisons are the same, and only runs waterman alignment for different sequences
+  for (i in 1:length(seqlist)) {
+    for (j in 1:length(seqlist)){
+      if (i==j){
+        WaM1[i,j]<-0}
+       else {
+           #run smith_waterman from package text.alignment
+          result<-smith_waterman(ids[[i]],ids[[j]], 
+                        match = 1L,
+                        mismatch = -2L,
+                        gap = -2L,)
+          #codecheck
+          #print(ids[i])
+          #print(ids[j])
+          WaM1[i,j]<- result$sw
+          #print(WaM1)
+          } 
+  
+    }
+  }
+ return(WaM1)
+}
+
+WaM<-compareall(fassequences)
+WaM
+
+protnames<-as.vector(names(fassequences))
+
+#draw out a heat map using names and matrix value
+heatmap(WaM,labRow=protnames, labCol=protnames)
+
+
+
+```
+
+#### The above method pairwise sequence alignment compares two sequences direction against each other. The algorithm used above has a scoring rubric, and scores based of match, mismatch, and gaps. The score shows us how similar the two sequences are. Multiple sequence alignment uses a different algorithm, such as clustalW, MUSCLE, and others to align and return consensus sequences between three or more sequences. The data types that are read in for this method are amino acid sequences.
+
+
+```{r}
+library(bio3d)                # Allows 3d measurement of our proteins
+
+pdbnames <- c("1PPP", "2w7u", "5egw", "1xkg")
+
+rawfile<- get.pdb(pdbnames)
+
+files <- pdbsplit(rawfile, pdbnames)
+
+# wanted to make comparisons with multople pdb files, but muscle is required, and cannot trouble shoot muscle, the executable file wont run.
+
+# pdbs <- pdbaln(files)
+
+# files
+
+ppapdb<- read.pdb("1PPP")
+ragwpdb<-read.pdb("5egw")
+hdmpdb<-read.pdb("1xkg")
+
+# observe binding sites for each protein of interest that showed homology 
+ppabinding<- binding.site(ppapdb)
+ppabinding
+
+
+# ragwbinding<-binding.site(ragwpdb)
+# not enough ligand in structure
+hdmbinding <- binding.site(hdmpdb)
+hdmbinding
+```
+
+#### The above analysis method uses the pdb database and pdb files for proteins to make 3D measurement of protein structures in the database. Here, the function binding.site is called to check the binding sites. The binding sites were cross referenced with the MSA results to locate the conserved sequences that may play a role in the induction of similiar allergic responses.
+
+```{r}
+library("vembedr")   # allows embedding videos into notebook
+
+embed_youtube("JPKnIxE1QHU")
+
+
+embed_youtube("gPdUmwcW8qY")
+
+
+embed_youtube("Cu_mL3Oefzw")
+
+
+embed_youtube("OXW22tnwf_Y")
+
+
+
+
+```
+#### The first video shows papain in cyan, and Der p 1 in yellow. We can see the sequence homologies that were shown in MSA, which all occur near the binding sites of the proteins respectively.
+
+#### The second video shows Der p 1 in yellow, and ragweed pollen allergen Amb a 1.2 in grey. The same sequences that were shown as conserved in MSA were visualized
+
+#### The third video shows papain in orange and Amb a 1.2 in grey. The same methods as above was used to visualize the similarities.
+
+#### The fourth video shows all the conserved sequences between all three proteins on a papain that seem to play a role in the protease triggering an allergic effect. 
+
+
+### Defining Variables
+
+#### Global variables are variables that are created outside a function. This allows them to be called at all times
+
+#### Local variables are variables that are created inside a function. This means that they can be only called inside the function, but not outside.
+
+#### This is used in my nested forloop to compare pairwise sequence alignment to all AA sequences I had
+
+```{r}
+#example code to explain local and global variable
+
+glob<- "Global Variable"
+
+
+myf<- function(){
+  glob<- "Local Variable"
+  paste("This is a ", glob)
+}
+
+# use function to call local variable
+myf()
+
+# call glob directly
+glob
+
+```
+
+
+## Analysis
+
+#### From the pairwise sequence alignment and the heatmap, we can see the papain and Der p 1 have the most sequence homology, and other proteins also show some sequence homology. Upon further investigation with multiple sequence alignment, it is clearly shown that the three proteins Der p 1, Amb a 1.2 and papain have commonly conserved sequences, but with SplA, it is not too clear if there are seqeunce homology with the other proteins. These proteins then were further analyzed to check for their binding site and the residues around the binding sites. These sites were then crossreferenced with the conserved sequences from our MSA, and it was found through pyMOL that the conserved sequences are around the binding sites, and these sites show structural similarities. The residues that help form the similiarities then were visualized and shown. In conclusion it can be said that the structure of these proteins are related in their functions in antagonizing the human immune system, and that the binding sites of the allergens, which show homology, seem to be driving this effect.
+
+
