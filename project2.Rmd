@@ -1,9 +1,12 @@
 ---
 title: "Project 2"
+author: John Kim
 output:
-  pdf_document: default
   html_document:
+    
     df_print: paged
+  pdf_document: default
+always_allow_html: yes
 ---
 
 ## Introduction
@@ -15,7 +18,7 @@ output:
 ### Background Research
 
 #### A major class of allergens that induce airway stimulation are proteases that come from many different sources. Some of these protease allergens include house dust mite derived proteases Der p 1, ragweed protease allergen Amb a 1.2, papain, and bacteria derived SplA . All of these allergens have shown to activate the type 2 immunity in a similar fashion where they disturb the tight junctions in epithelial cells making the epithelial layer more permeable. It also activates the Protease Activated Receptor 2 by cleaving the receptor that further signals the activation of type 2 immunity (Matsumura, 2011).  Papain has shown to trigger T cell differentiation with a bias towards Th2 cells that initiate type 2 immunity through the PAR2 pathway (Liang et al., 2012). Staphylococcus aureus derived SplA protease has also shown to increase Th2 cells in a similar fashion (Nordengrun et al, 2021). Ragweed allergy has been found to linked with the proteases allergen which is triggered by PAR2 (Hosoki et al., 2017). Moreover, these features were also observed in house dust mite allergen Der p 1 (Reithofer et al., 2017).
-
+ 
 ### Hypothesis
 
 #### If there are multiple instances of environmental allergens being proteases or having protease-like activity causing similar allergic responses in humans, then there must be either protein sequence or structural homology between these proteins for it to cause allergies in a similar manner in humans.
@@ -32,6 +35,7 @@ output:
 
 
 ```{r}
+
 library("Biostrings")         # Allows us to read fastafiles through the function readAAStringSet()
 library(msa)                  # Performing multiple sequence alignments
 library(tools)                # R base package for various functions
@@ -61,8 +65,12 @@ malignment
 
 # MSAprettyprint is used to show the results of our msa in a nicely visualized figure.
 # cannot view latex in non unix systems properly. but the code works
-a<-msaPrettyPrint(malignment, output="tex", showNames="none",
-           showLogo="none", askForOverwrite=FALSE, verbose=FALSE)
+# Error: Functions that produce HTML output found in document targeting latex output.
+# Please change the output type of this document to HTML. Alternatively, you can allow
+# HTML output in non-HTML formats by adding this option to the YAML front-matter of
+# your rmarkdown file:
+# a<-msaPrettyPrint(malignment, output="html", showNames="none",
+#            showLogo="none", askForOverwrite=FALSE, verbose=FALSE)
 
 
 # trying msa without spla, which has the lowerst homology
@@ -151,21 +159,30 @@ heatmap(WaM,labRow=protnames, labCol=protnames)
 ```{r}
 library(bio3d)                # Allows 3d measurement of our proteins
 
-pdbnames <- c("1PPP", "2w7u", "5egw", "1xkg")
+library(r3dmol)
 
-rawfile<- get.pdb(pdbnames)
-
-files <- pdbsplit(rawfile, pdbnames)
-
-# wanted to make comparisons with multople pdb files, but muscle is required, and cannot trouble shoot muscle, the executable file wont run.
-
-# pdbs <- pdbaln(files)
-
-# files
-
+#call in all pdb files
+ragwpdb<-read.pdb("5egw")
 ppapdb<- read.pdb("1PPP")
 ragwpdb<-read.pdb("5egw")
 hdmpdb<-read.pdb("1xkg")
+
+#chain A of ragweed protein is weird (too different for nma), need to take it out and compare
+ragwpdbB <-trim(ragwpdb, chain= 'B')
+write.pdb(ragwpdbB)
+
+pdbnames <- c("1PPP.pdb", "2w7u.pdb", "trim5egw.pdb", "1xkg.pdb")
+
+
+# wanted to make comparisons with multople pdb files, but muscle is required, and cannot trouble shoot muscle, the executable file wont run.
+# fixed with 'test@gmail.com
+pdbs <- pdbaln(pdbnames, fit = TRUE, pqr = FALSE, ncore = 1, nseg.scale = 1, web.args=list(email='test@gmail.com'))
+
+#perform nma and plot
+modes <- nma(pdbs, rm.gaps=FALSE)
+plot(modes)
+
+
 
 # observe binding sites for each protein of interest that showed homology 
 ppabinding<- binding.site(ppapdb)
@@ -227,16 +244,16 @@ myf<- function(){
 }
 
 # use function to call local variable
-myf()
+print(myf())
 
 # call glob directly
-glob
+print(glob)
 
 ```
 
 
 ## Analysis
 
-#### From the pairwise sequence alignment and the heatmap, we can see the papain and Der p 1 have the most sequence homology, and other proteins also show some sequence homology. Upon further investigation with multiple sequence alignment, it is clearly shown that the three proteins Der p 1, Amb a 1.2 and papain have commonly conserved sequences, but with SplA, it is not too clear if there are seqeunce homology with the other proteins. These proteins then were further analyzed to check for their binding site and the residues around the binding sites. These sites were then crossreferenced with the conserved sequences from our MSA, and it was found through pyMOL that the conserved sequences are around the binding sites, and these sites show structural similarities. The residues that help form the similiarities then were visualized and shown. In conclusion it can be said that the structure of these proteins are related in their functions in antagonizing the human immune system, and that the binding sites of the allergens, which show homology, seem to be driving this effect.
+#### From the pairwise sequence alignment and the heatmap, we can see the papain and Der p 1 have the most sequence homology, and other proteins also show some sequence homology. Upon further investigation with multiple sequence alignment, it is clearly shown that the three proteins Der p 1, Amb a 1.2 and papain have commonly conserved sequences, but with SplA, it is not too clear if there are seqeunce homology with the other proteins. These proteins then were further analyzed to check for their binding site and the residues around the binding sites. These sites were then crossreferenced with the conserved sequences from our MSA, and it was found through pyMOL that the conserved sequences are around the binding sites, and these sites show structural similarities. Moreover, the secondary protein structures also show homology, which may indicate that these protein structures help the allergens bind specifically to the junction gap proteins between epithilial cells. The residues that help form the similiarities then were visualized and shown through PyMOL. In conclusion it can be said that the structure of these proteins are related in their functions in antagonizing the human immune system, and that the binding sites of the allergens, which show homology, seem to be driving this effect. 
 
 
